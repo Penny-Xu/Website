@@ -1,0 +1,46 @@
+---
+import { getCollection } from "astro:content"
+import Layout from "../../layouts/Layout.astro"
+import { kebabCase } from "../../utils/slugify"
+
+const posts = await getCollection("posts")
+const counts = new Map()
+for (const post of posts) {
+  for (const tag of post.data.tags) {
+    counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  }
+}
+const tags = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+---
+
+<Layout title="Tags | Penny Xu">
+  <h1>Tags</h1>
+  <ul class="tag-list">
+    {
+      tags.map(([tag, count]) => (
+        <li>
+          <a class="tag" href={`/tags/${kebabCase(tag)}/`}>
+            {tag} ({count})
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</Layout>
+
+<style lang="scss">
+  .tag-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag {
+    color: #000000;
+    text-decoration: none;
+
+    &:hover {
+      color: #666666;
+    }
+  }
+</style>

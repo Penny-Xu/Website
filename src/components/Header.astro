@@ -1,0 +1,68 @@
+---
+const path = Astro.url.pathname
+const isActive = (href: string) =>
+  href === "/" ? path === "/" : path.startsWith(href)
+
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/blog", label: "Blog" },
+  { href: "/about", label: "About Me" },
+]
+---
+
+<header class="header">
+  <h1>
+    <a class="title" href="/">Penny Xu</a>
+  </h1>
+  <nav>
+    <ul class="nav-list">
+      {
+        links.map((link) => (
+          <li>
+            <a
+              class="nav-item"
+              class:list={{ active: isActive(link.href) }}
+              href={link.href}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</header>
+
+<style lang="scss">
+  .header {
+    padding: 1rem 0 3rem;
+  }
+
+  .title {
+    color: #000000;
+    font-size: 3rem;
+    text-decoration: none;
+  }
+
+  .nav-list {
+    display: flex;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav-item {
+    color: #999999;
+    font-size: 0.9rem;
+    margin-right: 1.3rem;
+    text-decoration: none;
+
+    &:hover {
+      color: #666666;
+    }
+
+    &.active {
+      color: #333333;
+    }
+  }
+</style>
