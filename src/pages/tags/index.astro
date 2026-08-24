@@ -20,7 +20,7 @@ const tags = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
       tags.map(([tag, count]) => (
         <li>
           <a class="tag" href={`/tags/${kebabCase(tag)}/`}>
-            {tag} ({count})
+            {tag} <span class="count">{count}</span>
           </a>
         </li>
       ))
@@ -30,17 +30,35 @@ const tags = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 
 <style lang="scss">
   .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
     list-style-type: none;
     margin: 0;
     padding: 0;
   }
 
   .tag {
-    color: #000000;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--color-accent-strong);
+    background: var(--color-accent-soft);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
     text-decoration: none;
+    transition: transform 150ms ease;
 
     &:hover {
-      color: #666666;
+      opacity: 1;
+      transform: translateY(-2px);
     }
+  }
+
+  .count {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
   }
 </style>

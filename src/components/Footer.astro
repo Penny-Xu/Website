@@ -76,18 +76,22 @@ const year = new Date().getFullYear()
 <style lang="scss">
   .footer {
     margin-top: 3rem;
-    color: #999999;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text-muted);
     font-size: 0.8rem;
   }
 
   .icon-link {
     display: inline-flex;
-    color: #000000;
+    color: var(--color-text-muted);
     margin-right: 1.5rem;
     text-decoration: none;
 
     &:hover {
-      color: #ffc0cb;
+      color: var(--color-accent);
+      opacity: 1;
+      transform: translateY(-2px);
     }
   }
 </style>

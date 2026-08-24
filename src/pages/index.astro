@@ -5,5 +5,18 @@ import Layout from "../layouts/Layout.astro"
 <Layout>
   <h1>Hello.</h1>
   <h2>Welcome to a basic website from a basic developer.</h2>
-  <img src="/cat.gif" alt="Logo" />
+  <img class="cat" src="/cat.gif" alt="Logo" />
 </Layout>
+
+<style>
+  h2 {
+    color: var(--color-text-muted);
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 1.1rem;
+  }
+
+  .cat {
+    box-shadow: 0 4px 20px hsla(0, 0%, 0%, 0.12);
+  }
+</style>

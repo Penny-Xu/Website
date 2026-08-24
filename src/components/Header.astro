@@ -39,9 +39,16 @@ const links = [
   }
 
   .title {
-    color: #000000;
-    font-size: 3rem;
+    display: inline-block;
+    color: var(--color-text);
+    font-size: 2.75rem;
     text-decoration: none;
+    transition: color 150ms ease;
+
+    &:hover {
+      color: var(--color-accent-strong);
+      opacity: 1;
+    }
   }
 
   .nav-list {
@@ -52,17 +59,40 @@ const links = [
   }
 
   .nav-item {
-    color: #999999;
+    position: relative;
+    color: var(--color-text-muted);
     font-size: 0.9rem;
-    margin-right: 1.3rem;
+    font-weight: 500;
+    margin-right: 1.5rem;
+    padding-bottom: 0.3rem;
     text-decoration: none;
 
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 100%;
+      bottom: 0;
+      height: 2px;
+      background: var(--color-accent);
+      transition: right 200ms ease;
+    }
+
     &:hover {
-      color: #666666;
+      color: var(--color-text);
+      opacity: 1;
+
+      &::after {
+        right: 0;
+      }
     }
 
     &.active {
-      color: #333333;
+      color: var(--color-text);
+
+      &::after {
+        right: 0;
+      }
     }
   }
 </style>

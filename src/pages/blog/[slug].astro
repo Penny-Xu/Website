@@ -19,10 +19,9 @@ const { Content } = await render(post)
 
 <Layout title={`${post.data.title} | Penny Xu`}>
   <h1>{post.data.title}</h1>
-  <p>{post.data.date.toISOString().slice(0, 10)}</p>
+  <p class="date">{post.data.date.toISOString().slice(0, 10)}</p>
   <nav>
     <ul class="tag-list">
-      <li class="tag-label">Tags:</li>
       {
         post.data.tags.map((tag) => (
           <li>
@@ -41,29 +40,33 @@ const { Content } = await render(post)
 </Layout>
 
 <style lang="scss">
+  .date {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-top: -0.6rem;
+  }
+
   .tag-list {
     display: flex;
     flex-wrap: wrap;
+    gap: 0.5rem;
     list-style-type: none;
-    margin: 0;
+    margin: 0 0 1.45rem;
     padding: 0;
   }
 
-  .tag-label {
-    color: #000000;
-    font-size: 1rem;
-    margin-right: 1.3rem;
-  }
-
   .tag {
-    color: #000000;
-    font-size: 1rem;
-    margin-right: 1.3rem;
+    display: inline-block;
+    color: var(--color-accent-strong);
+    background: var(--color-accent-soft);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
     text-decoration: none;
-    background: #ffebee;
 
     &:hover {
-      color: #666666;
+      opacity: 0.7;
     }
   }
 </style>
