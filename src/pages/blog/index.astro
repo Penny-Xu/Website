@@ -1,0 +1,65 @@
+---
+import { getCollection } from "astro:content"
+import Layout from "../../layouts/Layout.astro"
+
+const posts = (await getCollection("posts")).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+)
+---
+
+<Layout title="Blog | Penny Xu">
+  <h1>Blog</h1>
+  <ol class="posts">
+    {
+      posts.map((post) => (
+        <li class="post">
+          <a href={`/blog/${post.id}/`}>
+            <h2>{post.data.title}</h2>
+            <p>{post.data.date.toISOString().slice(0, 10)}</p>
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+  <a class="tags-link" href="/tags">All Tags</a>
+</Layout>
+
+<style lang="scss">
+  .posts {
+    list-style-type: none;
+    margin: 0;
+  }
+
+  .post {
+    margin: 1rem 0;
+
+    a {
+      background: #f4f4f4;
+      color: #000000;
+      display: block;
+      padding: 1rem;
+      text-decoration: none;
+
+      &:hover {
+        background: #ffebee;
+      }
+    }
+
+    h2 {
+      margin-bottom: 0;
+    }
+
+    p {
+      color: #777777;
+      font-size: 0.8rem;
+      font-style: italic;
+      margin-bottom: 0;
+    }
+  }
+
+  .tags-link {
+    color: #000000;
+    font-size: 1rem;
+    text-decoration: none;
+  }
+</style>

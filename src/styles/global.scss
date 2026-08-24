@@ -1,0 +1,120 @@
+/* Base reset + typography, adapted from https://github.com/gatsbyjs/gatsby-starter-blog (MIT) */
+
+html {
+  font: 112.5%/1.45em georgia, serif;
+  box-sizing: border-box;
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  color: hsla(0, 0%, 0%, 0.8);
+  font-family: sans-serif;
+  font-weight: normal;
+  word-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  max-width: 100%;
+  margin: 0 0 1.45rem;
+  border-style: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 1.45rem;
+  color: inherit;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-weight: bold;
+  text-rendering: optimizeLegibility;
+  line-height: 1.1;
+}
+
+h1 {
+  font-size: 2.25rem;
+}
+h2 {
+  font-size: 1.62671rem;
+}
+h3 {
+  font-size: 1.38316rem;
+}
+
+ul,
+ol {
+  margin: 0 0 1.45rem 1.45rem;
+  list-style-position: outside;
+}
+
+p,
+figure,
+pre,
+table,
+fieldset,
+blockquote,
+form {
+  margin: 0 0 1.45rem;
+}
+
+pre {
+  font-size: 0.85rem;
+  line-height: 1.42;
+  background: hsla(0, 0%, 0%, 0.04);
+  border-radius: 3px;
+  overflow: auto;
+  padding: 1.45rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td,
+th {
+  text-align: left;
+  border-bottom: 1px solid hsla(0, 0%, 0%, 0.12);
+  padding: 0.725rem 0.96667rem;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family:
+    "SFMono-Regular", Consolas, "Roboto Mono", "Droid Sans Mono",
+    "Liberation Mono", Menlo, Courier, monospace;
+}
+
+tt,
+code {
+  background-color: hsla(0, 0%, 0%, 0.04);
+  border-radius: 3px;
+  padding: 0.2em 0;
+}
+
+hr {
+  background: hsla(0, 0%, 0%, 0.2);
+  border: none;
+  height: 1px;
+  margin: 0 0 1.4rem;
+}
+
+a {
+  color: inherit;
+}

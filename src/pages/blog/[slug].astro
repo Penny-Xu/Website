@@ -1,0 +1,69 @@
+---
+import { getCollection, render } from "astro:content"
+import Layout from "../../layouts/Layout.astro"
+import Comments from "../../components/Comments.astro"
+import { kebabCase } from "../../utils/slugify"
+import "katex/dist/katex.min.css"
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts")
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }))
+}
+
+const { post } = Astro.props
+const { Content } = await render(post)
+---
+
+<Layout title={`${post.data.title} | Penny Xu`}>
+  <h1>{post.data.title}</h1>
+  <p>{post.data.date.toISOString().slice(0, 10)}</p>
+  <nav>
+    <ul class="tag-list">
+      <li class="tag-label">Tags:</li>
+      {
+        post.data.tags.map((tag) => (
+          <li>
+            <a class="tag" href={`/tags/${kebabCase(tag)}/`}>
+              {tag}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  <hr />
+  <Content />
+  <hr />
+  <Comments />
+</Layout>
+
+<style lang="scss">
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag-label {
+    color: #000000;
+    font-size: 1rem;
+    margin-right: 1.3rem;
+  }
+
+  .tag {
+    color: #000000;
+    font-size: 1rem;
+    margin-right: 1.3rem;
+    text-decoration: none;
+    background: #ffebee;
+
+    &:hover {
+      color: #666666;
+    }
+  }
+</style>

@@ -1,0 +1,60 @@
+---
+import { getCollection } from "astro:content"
+import Layout from "../../layouts/Layout.astro"
+import { kebabCase } from "../../utils/slugify"
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts")
+  const byTag = new Map()
+  for (const post of posts) {
+    for (const tag of post.data.tags) {
+      const key = kebabCase(tag)
+      if (!byTag.has(key)) byTag.set(key, { label: tag, posts: [] })
+      byTag.get(key).posts.push(post)
+    }
+  }
+  return [...byTag.entries()].map(([slug, { label, posts }]) => ({
+    params: { tag: slug },
+    props: { label, posts },
+  }))
+}
+
+const { label, posts } = Astro.props
+const sorted = [...posts].sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+)
+---
+
+<Layout title={`${label} | Penny Xu`}>
+  <h1>{posts.length} post{posts.length === 1 ? "" : "s"} tagged with "{label}"</h1>
+  <ul class="posts">
+    {
+      sorted.map((post) => (
+        <li>
+          <a href={`/blog/${post.id}/`}>{post.data.title}</a>
+        </li>
+      ))
+    }
+  </ul>
+</Layout>
+
+<style lang="scss">
+  .posts {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      color: #000000;
+      text-decoration: none;
+
+      &:hover {
+        color: #666666;
+      }
+    }
+  }
+</style>
