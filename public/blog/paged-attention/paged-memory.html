@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PagedAttention: logical and physical blocks</title>
+<style>
+  :root {
+    --ink:#1a1a1a; --muted:#6b6b6b; --line:#d4d4d4; --bg:#fdfdfc; --panel:#f4f4f2;
+    --a:#2f6ea8; --a-bg:#e8f1f8;
+    --b:#3d7a4e; --b-bg:#e9f3eb;
+    --c:#7a4a8c; --c-bg:#f2eaf5;
+    --waste:#c2742a; --waste-bg:#faf0e3;
+    --free:#ffffff;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  .wrap { max-width:840px; margin:0 auto; padding:16px 12px 24px; }
+  svg { width:100%; height:auto; display:block; }
+  text { font-family:"SF Mono",Menlo,Consolas,monospace; }
+  .hidden { opacity:0; }
+  g { transition:opacity .35s ease; }
+  .caption { min-height:72px; margin:14px 2px 0; font-size:14.5px; line-height:1.6; }
+  .caption b { font-weight:600; }
+  .caption code { font-family:"SF Mono",Menlo,Consolas,monospace; font-size:13px;
+    background:var(--panel); padding:1px 4px; border-radius:2px; }
+  .controls { display:flex; align-items:center; gap:10px; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--line); }
+  button { font:inherit; font-size:13px; padding:6px 14px; border:1px solid var(--line);
+    background:#fff; color:var(--ink); border-radius:3px; cursor:pointer; }
+  button:hover:not(:disabled){ background:var(--panel); }
+  button:disabled { opacity:.4; cursor:default; }
+  .count { font-family:"SF Mono",Menlo,Consolas,monospace; font-size:12.5px; color:var(--muted); }
+  .dots { display:flex; gap:5px; margin-left:auto; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--line); cursor:pointer; }
+  .dot.on { background:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<svg viewBox="0 0 820 440" role="img" aria-label="PagedAttention memory animation">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#8a8a8a" stroke-width="1.8"/>
+    </marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#2f6ea8" stroke-width="1.8"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#3d7a4e" stroke-width="1.8"/>
+    </marker>
+    <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#c2742a" stroke-width="1.8"/>
+    </marker>
+  </defs>
+
+  <!-- ===== step 1: the naive problem ===== -->
+  <g id="g-naive">
+    <text x="20" y="22" font-size="10" fill="#6b6b6b">THE OLD WAY — reserve the worst case up front</text>
+    <rect x="20" y="32" width="780" height="46" rx="3" fill="var(--waste-bg)" stroke="var(--waste)"/>
+    <rect x="20" y="32" width="58" height="46" rx="3" fill="var(--a-bg)" stroke="var(--a)"/>
+    <text x="49" y="60" text-anchor="middle" font-size="9.5" fill="var(--a)">used</text>
+    <text x="400" y="60" text-anchor="middle" font-size="10" fill="var(--waste)">reserved for a 32,768-token context that will never arrive — wasted</text
+    ><text x="20" y="94" font-size="9.5" fill="#6b6b6b">one request, 500 tokens used, 1.8 GB reserved → ~98% of it idle</text>
+  </g>
+
+  <!-- ===== step 2: physical memory as blocks ===== -->
+  <g id="g-phys" class="hidden">
+    <text x="440" y="22" font-size="10" fill="#6b6b6b">PHYSICAL GPU MEMORY — fixed 16-token blocks</text>
+    <g id="phys-grid" font-size="9" fill="#8a8a8a"></g>
+  </g>
+
+  <!-- ===== logical views ===== -->
+  <g id="g-logicalA" class="hidden">
+    <text x="20" y="22" font-size="10" fill="var(--a)">REQUEST A — logical view</text>
+    <rect x="20" y="30" width="54" height="26" rx="2" fill="var(--a-bg)" stroke="var(--a)"/>
+    <text x="47" y="47" text-anchor="middle" font-size="9">0–15</text>
+    <rect x="78" y="30" width="54" height="26" rx="2" fill="var(--a-bg)" stroke="var(--a)"/>
+    <text x="105" y="47" text-anchor="middle" font-size="9">16–31</text>
+    <rect x="136" y="30" width="54" height="26" rx="2" fill="var(--a-bg)" stroke="var(--a)"/>
+    <text x="163" y="47" text-anchor="middle" font-size="9">32–47</text>
+    <text x="20" y="70" font-size="9" fill="#8a8a8a">token positions — each block holds 16 tokens' worth of K and V</text>
+    <text x="20" y="82" font-size="9" fill="#8a8a8a">contiguous from 0, which is a convenient fiction</text>
+  </g>
+
+  <g id="g-logicalB" class="hidden">
+    <text x="20" y="104" font-size="10" fill="var(--b)">REQUEST B — logical view</text>
+    <rect x="20" y="112" width="54" height="26" rx="2" fill="var(--b-bg)" stroke="var(--b)"/>
+    <text x="47" y="129" text-anchor="middle" font-size="9">0–15</text>
+    <rect x="78" y="112" width="54" height="26" rx="2" fill="var(--b-bg)" stroke="var(--b)"/>
+    <text x="105" y="129" text-anchor="middle" font-size="9">16–31</text>
+  </g>
+
+  <!-- ===== block tables ===== -->
+  <g id="g-tableA" class="hidden">
+    <text x="20" y="176" font-size="10" fill="#6b6b6b">BLOCK TABLE A</text>
+    <rect x="20" y="184" width="170" height="68" rx="3" fill="#fff" stroke="#d4d4d4"/>
+    <text x="32" y="200" font-size="9" fill="#8a8a8a">logical → physical</text>
+    <text x="32" y="216" font-size="9.5" fill="var(--a)">0–15    →  block 7</text>
+    <text x="32" y="230" font-size="9.5" fill="var(--a)">16–31   →  block 23</text>
+    <text x="32" y="244" font-size="9.5" fill="var(--a)">32–47   →  block 4</text>
+  </g>
+
+  <g id="g-tableB" class="hidden">
+    <text x="20" y="276" font-size="10" fill="#6b6b6b">BLOCK TABLE B</text>
+    <rect x="20" y="284" width="170" height="54" rx="3" fill="#fff" stroke="#d4d4d4"/>
+    <text x="32" y="302" font-size="9.5" fill="var(--b)">0–15    →  block 12</text>
+    <text x="32" y="316" font-size="9.5" fill="var(--b)">16–31   →  block 15</text>
+  </g>
+
+  <!-- ===== shared prefix ===== -->
+  <g id="g-shared" class="hidden">
+    <text x="20" y="276" font-size="10" fill="#6b6b6b">BLOCK TABLE B</text>
+    <rect x="20" y="284" width="190" height="54" rx="3" fill="#fff" stroke="#1a1a1a"/>
+    <text x="32" y="302" font-size="9.5" fill="#1a1a1a">0–15    →  block 7   ← shared</text>
+    <text x="32" y="316" font-size="9.5" fill="var(--b)">16–31   →  block 15</text>
+    <text x="20" y="356" font-size="9" fill="#1a1a1a">same system prompt → same blocks, refcount 2</text>
+  </g>
+
+  <!-- ===== CPU memory ===== -->
+  <g id="g-cpu" class="hidden">
+    <text x="440" y="340" font-size="10" fill="#6b6b6b">HOST (CPU) MEMORY</text>
+    <rect x="440" y="348" width="360" height="56" rx="3" fill="var(--panel)" stroke="#d4d4d4" stroke-dasharray="4 3"/>
+    <text x="452" y="366" font-size="9" fill="#8a8a8a">ordinary system RAM — blocks copied</text>
+    <text x="452" y="377" font-size="9" fill="#8a8a8a">off the GPU and parked here over PCIe,</text>
+    <text x="452" y="388" font-size="9" fill="#8a8a8a">~50× slower than the GPU's own memory</text>
+  </g>
+
+  <g id="g-evict" class="hidden">
+    <path d="M636,206 L636,344" fill="none" stroke="var(--b)" stroke-width="1.5" marker-end="url(#ag)"/>
+    <text x="644" y="258" font-size="9" fill="var(--b)">copied out to</text>
+    <text x="644" y="270" font-size="9" fill="var(--b)">CPU memory</text>
+    <rect x="690" y="356" width="30" height="20" rx="2" fill="var(--b-bg)" stroke="var(--b)"/>
+    <text x="705" y="370" text-anchor="middle" font-size="8.5" fill="var(--b)">15</text>
+    <text x="672" y="390" font-size="8.5" fill="var(--b)">B's private block</text>
+  </g>
+
+  <g id="g-swapback" class="hidden">
+    <path d="M636,344 L636,206" fill="none" stroke="var(--b)" stroke-width="1.5"
+          stroke-dasharray="3 2" marker-end="url(#ag)"/>
+    <text x="644" y="258" font-size="9" fill="var(--b)">swapped back in —</text>
+    <text x="644" y="270" font-size="9" fill="var(--b)">to a different block</text>
+    <text x="676" y="372" font-size="9" fill="var(--b)">empty again</text>
+  </g>
+
+  <!-- B's rewritten block table -->
+  <g id="g-tableB2" class="hidden">
+    <text x="20" y="276" font-size="10" fill="#6b6b6b">BLOCK TABLE B — rewritten</text>
+    <rect x="20" y="284" width="190" height="54" rx="3" fill="#fff" stroke="#1a1a1a"/>
+    <text x="32" y="302" font-size="9.5" fill="#1a1a1a">0–15    →  block 7   still shared</text>
+    <text x="32" y="316" font-size="9.5" fill="var(--b)">16–31   →  block 2   ← moved</text>
+    <text x="20" y="356" font-size="9" fill="#1a1a1a">same logical view, new physical home</text>
+  </g>
+</svg>
+
+<div class="caption" id="cap"></div>
+
+<div class="controls">
+  <button id="prev">← Prev</button>
+  <button id="next">Next →</button>
+  <span class="count" id="count"></span>
+  <div class="dots" id="dots"></div>
+</div>
+</div>
+
+<script>
+/* ---- build the 6×5 physical memory grid ---- */
+const grid = document.getElementById("phys-grid");
+const COLS = 6, ROWS = 5, BW = 56, BH = 30, X0 = 440, Y0 = 32, GX = 60, GY = 34;
+const cells = {};
+for (let n = 0; n < COLS * ROWS; n++) {
+  const c = n % COLS, r = (n - c) / COLS;
+  const x = X0 + c * GX, y = Y0 + r * GY;
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("x", x); rect.setAttribute("y", y);
+  rect.setAttribute("width", BW); rect.setAttribute("height", BH);
+  rect.setAttribute("rx", 2); rect.setAttribute("fill", "#fff");
+  rect.setAttribute("stroke", "#d4d4d4"); rect.setAttribute("stroke-width", ".9");
+  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  label.setAttribute("x", x + BW / 2); label.setAttribute("y", y + 19);
+  label.setAttribute("text-anchor", "middle"); label.setAttribute("font-size", "9.5");
+  label.setAttribute("fill", "#8a8a8a"); label.textContent = n;
+  grid.appendChild(rect); grid.appendChild(label);
+  cells[n] = { rect, label };
+}
+
+function paint(map) {
+  for (const n in cells) {
+    cells[n].rect.setAttribute("fill", "#fff");
+    cells[n].rect.setAttribute("stroke", "#d4d4d4");
+    cells[n].rect.setAttribute("stroke-width", ".9");
+    cells[n].rect.removeAttribute("stroke-dasharray");
+    cells[n].label.setAttribute("fill", "#8a8a8a");
+  }
+  for (const n in map) {
+    const kind = map[n];
+    const c = cells[n]; if (!c) continue;
+    if (kind === "A") { c.rect.setAttribute("fill", "#e8f1f8"); c.rect.setAttribute("stroke", "#2f6ea8");
+                        c.rect.setAttribute("stroke-width", "1.4"); c.label.setAttribute("fill", "#2f6ea8"); }
+    if (kind === "B") { c.rect.setAttribute("fill", "#e9f3eb"); c.rect.setAttribute("stroke", "#3d7a4e");
+                        c.rect.setAttribute("stroke-width", "1.4"); c.label.setAttribute("fill", "#3d7a4e"); }
+    if (kind === "C") { c.rect.setAttribute("fill", "#f2eaf5"); c.rect.setAttribute("stroke", "#7a4a8c");
+                        c.rect.setAttribute("stroke-width", "1.4"); c.label.setAttribute("fill", "#7a4a8c"); }
+    if (kind === "S") { c.rect.setAttribute("fill", "#e8f1f8"); c.rect.setAttribute("stroke", "#1a1a1a");
+                        c.rect.setAttribute("stroke-width", "2"); c.label.setAttribute("fill", "#1a1a1a"); }
+    if (kind === "G") { c.rect.setAttribute("fill", "#f4f4f2"); c.rect.setAttribute("stroke", "#d4d4d4");
+                        c.rect.setAttribute("stroke-dasharray", "3 2"); c.label.setAttribute("fill", "#c4c4c4"); }
+  }
+}
+
+const steps = [
+  { show:["g-naive"], map:{},
+    cap:"Before paging: a request reserved one <b>contiguous</b> chunk of KV memory sized for the <i>largest context it might ever use</i> — because you cannot know in advance how long a response will be. A 500-token conversation holding a 32,768-token reservation wastes about <b>98%</b> of it. Classic internal fragmentation." },
+
+  { show:["g-phys"], map:{},
+    cap:"The fix: stop reserving ranges. Chop GPU memory into small <b>fixed-size blocks</b>, each holding 16 tokens' worth of K and V, and hand them out one at a time as a request grows. Exactly how an operating system manages physical memory in pages." },
+
+  { show:["g-phys","g-logicalA","g-tableA"], map:{7:"A",23:"A",4:"A"},
+    cap:"Request A thinks it owns a tidy sequence starting at token 0 — its <b>logical</b> view. Physically its blocks landed wherever happened to be free: <b>7, 23, 4</b>. Scattered, non-contiguous, allocated on demand as the response grew. The <b>block table</b> is the translation, and it is a page table in everything but name." },
+
+  { show:["g-phys","g-logicalA","g-logicalB","g-tableA","g-tableB"], map:{7:"A",23:"A",4:"A",12:"B",15:"B"},
+    cap:"A second request arrives and takes blocks <b>12</b> and <b>15</b> — interleaved among A's, with no coordination needed. Neither request knows or cares. Both keep their own private block table, and both believe they hold a clean contiguous sequence." },
+
+  { show:["g-phys","g-logicalA","g-logicalB","g-tableA","g-shared"], map:{7:"S",23:"A",4:"A",15:"B"},
+    cap:"Now suppose both requests open with the <b>same first 16 tokens</b> — one block's worth of shared system prompt. Identical tokens produce identical K and V, so both tables point at the <b>same physical block</b>: one copy, reference count 2. Notice <b>block 12 is now free</b> — B no longer needs its own duplicate. This is <code>fork()</code> with copy-on-write, and in production a system prompt runs 1,000+ tokens shared across every request, which is where the savings get enormous." },
+
+  { show:["g-phys","g-logicalA","g-logicalB","g-tableA","g-shared","g-cpu"], map:{7:"S",23:"A",4:"A",15:"B",0:"C",1:"C",2:"C",3:"C",5:"C",6:"C",8:"C",9:"C",10:"C",11:"C",12:"C",13:"C",14:"C",16:"C",17:"C",18:"C",19:"C",20:"C",21:"C",22:"C",24:"C",25:"C",26:"C",27:"C",28:"C",29:"C"},
+    cap:"Traffic rises. <b>Other requests</b> (purple) pour in and claim every remaining block, while A and B hold on to the few they already had. The free pool runs dry, and there is nowhere to put the next token's K and V. The scheduler now faces an operating-system decision: <b>something must be evicted.</b> Below sits host memory — reachable only across PCIe, roughly 50× slower than the GPU's own." },
+
+  { show:["g-phys","g-logicalA","g-tableA","g-cpu","g-evict"], map:{7:"A",23:"A",4:"A",15:"G",0:"C",1:"C",2:"C",3:"C",5:"C",6:"C",8:"C",9:"C",10:"C",11:"C",12:"C",13:"C",14:"C",16:"C",17:"C",18:"C",19:"C",20:"C",21:"C",22:"C",24:"C",25:"C",26:"C",27:"C",28:"C",29:"C"},
+    cap:"Request B is chosen as the victim, and its whole sequence is evicted — vLLM swaps out entire sequences rather than individual blocks, since a partially-evicted sequence cannot run anyway. But notice <b>only block 15 is actually copied out</b>: that is B's private block. The shared prefix in block 7 <b>stays resident</b>, because A still references it. Sharing doesn't just save memory, it reduces how much has to move when things get tight." },
+
+  { show:["g-phys","g-logicalA","g-logicalB","g-tableA","g-tableB2","g-cpu","g-swapback"], map:{7:"S",23:"A",4:"A",2:"B",0:"C",1:"C",3:"C",5:"C",6:"C",8:"C",9:"C",10:"C",11:"C",12:"C",13:"C",14:"C",15:"C",16:"C",17:"C",18:"C",19:"C",20:"C",21:"C",22:"C",24:"C",25:"C",26:"C",27:"C"},
+    cap:"Some of the other traffic finishes, capacity frees up, and B is swapped <b>back in</b> — but <b>not to block 15</b>. Another request claimed that the moment B released it. B lands in <b>block 2</b> instead, simply whatever happened to be free, while block 7 goes back to being shared. The only thing that changes is one line in its block table. B itself never knows it moved. That is what the indirection buys: HBM behaves like RAM, host memory like disk, and blocks relocate freely. The same hazard applies as in any swapping system — evict too eagerly and you spend your time pushing bytes over PCIe instead of generating tokens." }
+];
+
+const allGroups = ["g-naive","g-phys","g-logicalA","g-logicalB","g-tableA","g-tableB","g-shared","g-tableB2","g-cpu","g-evict","g-swapback"];
+let i = 0;
+const capEl=document.getElementById("cap"), countEl=document.getElementById("count"),
+      prevEl=document.getElementById("prev"), nextEl=document.getElementById("next"),
+      dotsEl=document.getElementById("dots");
+
+steps.forEach((_,n)=>{ const d=document.createElement("div"); d.className="dot";
+  d.onclick=()=>{i=n;render();}; dotsEl.appendChild(d); });
+
+function render(){
+  const s=steps[i];
+  allGroups.forEach(id=>document.getElementById(id).classList.toggle("hidden",!s.show.includes(id)));
+  paint(s.map||{});
+  capEl.innerHTML=s.cap;
+  countEl.textContent=(i+1)+" / "+steps.length;
+  prevEl.disabled=i===0; nextEl.disabled=i===steps.length-1;
+  [...dotsEl.children].forEach((d,n)=>d.classList.toggle("on",n===i));
+}
+prevEl.onclick=()=>{ if(i>0){i--;render();} };
+nextEl.onclick=()=>{ if(i<steps.length-1){i++;render();} };
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowRight")nextEl.click();
+  if(e.key==="ArrowLeft")prevEl.click();
+});
+render();
+</script>
+</body>
+</html>
