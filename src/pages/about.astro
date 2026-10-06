@@ -2,14 +2,28 @@
 import Layout from "../layouts/Layout.astro"
 ---
 
-<Layout title="About Me | Penny Xu">
+<Layout
+  title="About Me | Penny Xu"
+  description="Penny Xu — systems engineer in the Bay Area working on GPU and graphics systems at Apple, currently going deep on LLM inference."
+>
   <h1>About Me</h1>
   <p>
-    Currently a recent college grad living in the beautiful Bay Area! You can
-    say I'm interested in the tech stuff like Artificial Intelligence and
-    Machine Learning. In my free time I enjoy reading about history and
-    economics, as well as making / editing YouTube videos haha. Cache me
-    outside: hiking, swimming, and skiing. Also challenge me in chess!
+    I'm a systems engineer in the Bay Area. I work on GPU and graphics systems
+    at Apple — screen capture, display pipelines, the parts nobody notices
+    until they break — and before that I worked on the Vulkan driver stack at
+    Samsung. Computer Engineering at UIUC, with a year at EPFL.
+  </p>
+  <p>
+    Lately I've been going deep on LLM inference: how these models actually get
+    served, where all the memory goes, and why serving them turns out to be an
+    operating systems problem wearing a machine learning hat. That's where I
+    want to spend the next stretch of my career. Most of what I write here
+    started as me trying to understand something properly, so the diagrams are
+    for me as much as for you.
+  </p>
+  <p>
+    Outside of that: history and economics, hiking, swimming, skiing. Also
+    challenge me in chess!
     <a
       class="chess-link"
       href="https://www.chess.com/member/LazyKoalaBear"
@@ -26,7 +40,7 @@ import Layout from "../layouts/Layout.astro"
       </svg>
     </a>
   </p>
-  <img src="/me.jpg" alt="" height="500" width="495" />
+  <img src="/me.jpg" alt="Penny Xu" height="500" width="495" />
 </Layout>
 
 <style>

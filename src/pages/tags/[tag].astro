@@ -25,7 +25,10 @@ const sorted = [...posts].sort(
 )
 ---
 
-<Layout title={`${label} | Penny Xu`}>
+<Layout
+  title={`${label} | Penny Xu`}
+  description={`Posts tagged ${label} — technical writing by Penny Xu.`}
+>
   <h1>{posts.length} post{posts.length === 1 ? "" : "s"} tagged with "{label}"</h1>
   <ul class="posts">
     {

@@ -6,10 +6,19 @@ import "../styles/global.scss"
 interface Props {
   title?: string
   description?: string
+  image?: string
+  type?: "website" | "article"
 }
 
-const { title = "Penny Xu", description = "Penny Xu's personal blog." } =
-  Astro.props
+const {
+  title = "Penny Xu",
+  description = "Penny Xu's personal blog.",
+  image = "/me.jpg",
+  type = "website",
+} = Astro.props
+
+const canonical = new URL(Astro.url.pathname, Astro.site)
+const ogImage = new URL(image, Astro.site)
 ---
 
 <html lang="en">
@@ -20,6 +29,19 @@ const { title = "Penny Xu", description = "Penny Xu's personal blog." } =
     <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="Penny Xu" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

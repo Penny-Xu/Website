@@ -1,7 +1,7 @@
 ---
 title: "Tiled Matrix Multiplication"
 date: "2019-08-24"
-tags: ["deep learning","matrix multiplication", "CUDA", "parallelism"]
+tags: ["deep learning","matrix multiplication", "CUDA", "GPU", "parallelism"]
 ---
 
 
@@ -27,13 +27,13 @@ To finish off this analogy, each one of your friends is a worker, or an unit of 
 
 Given a 4x4 input matrix A and a 4x4 input matrix B, I want to calculate a 4x4 output matrix C. Since C consists of 16 elements, where each element is computed through a dot product of a row of A and a column of B, then let's launch 16 threads, where each thread calculates 1 output element. For the sake of this example, let's say the threads is organized into a 2x2 block, and there are 4 blocks in a grid.
 
-![](/blog/tiled-matrix-multiplication/setup.gif)
+![Two 4x4 input matrices A and B producing a 4x4 output matrix C, with 16 CUDA threads organized into four 2x2 thread blocks, one thread per output element](/blog/tiled-matrix-multiplication/setup.gif)
 
 ## Visualization
 
 Let's see what each thread within each block is doing. From the visualization below, you can see that each thread is responsible for loading input elements into the shared memory. Remember that shared memory is _shared_ within each block. This means that each of the four threads in a block in this example can _see_ what the other three threads loaded into share A and share B. You can see that we are essentially doing mini-matrix multiplication using shared memory, storing the temporary result somewhere, and then continue summing the temporary results of the next mini-matrix multiplication. When we are finished with each individual mini-matrix multiplication, each thread would load their corresponding result to the output C element that they are mapped to. Keep in mind that we are only looking at the threads in one block, don't forget that all the other threads in the other three blocks are also doing their version of the calculations AT THE SAME TIME. Just think about it...
 
-![](/blog/tiled-matrix-multiplication/tmm.gif)
+![Animation of one thread block performing tiled matrix multiplication: each thread loads elements of A and B into shared memory, the block computes a mini matrix multiplication from shared memory, and partial results accumulate before being written to output matrix C](/blog/tiled-matrix-multiplication/tmm.gif)
 
 Let's compare global memory accesses with and without tiling. A global memory access is accessing elements of either input A or input B.
 

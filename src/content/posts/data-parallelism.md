@@ -1,7 +1,7 @@
 ---
 title: "Parallel Deep Learning"
 date: "2019-10-20"
-tags: ["neural network", "deep learning" , "parallelism"]
+tags: ["neural network", "deep learning", "parallelism", "GPU"]
 ---
 
 We all know that GPUs can speed up training time of neural network models over CPUs due to its parallel nature as kinda demonstrated from my previous post. Recently, a friend who read my post asked me...if training on GPUs is so effective, why don't you just have multiple GPUs and stack them up to accelerate training time? What he was referring to is known as multi-processor parallelism. This is similar to say, in High Performance Computing, applications can use a cluster of computing nodes, where each node can have many hosts (CPUs) and many devices (GPUs). Intuitively, this makes a lot of sense, more hardware resources means more computing power, which means less training time. But now the question is HOW can we efficiently distribute the work? What is the best way to split up the work load of training a deep neural network model onto multiple GPUs? Are there any inherent parallelism in the learning workloads? These are the questions that I could not answer...until now! We will investigate the three types of parallelism today:

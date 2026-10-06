@@ -7,6 +7,9 @@ const posts = defineCollection({
     title: z.string(),
     date: z.coerce.date(),
     tags: z.array(z.string()).default([]),
+    // Optional: used for the meta description and social card. Falls back to
+    // the opening of the post body when omitted.
+    description: z.string().optional(),
   }),
 })
 

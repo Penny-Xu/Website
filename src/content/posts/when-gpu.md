@@ -1,7 +1,7 @@
 ---
 title: "When to use GPU for training?"
 date: "2019-09-04"
-tags: ["PyTorch", "CUDA"]
+tags: ["PyTorch", "CUDA", "GPU"]
 ---
 
 This is going to be a super chill post. While at Peet's Coffee catching up with a friend and enjoying some cafe time, I noticed that his laptop had a nvidia gpu (that green sticker ya know). So naturally, I asked wouldn't it be fun to run some deep learning training models on his laptop and see how it fares with running the same model on my laptop's cpu.

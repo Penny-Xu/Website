@@ -1,0 +1,109 @@
+---
+import { getCollection } from "astro:content"
+
+interface Props {
+  slug: string
+  tags: string[]
+  date: Date
+}
+
+const { slug, tags, date } = Astro.props
+
+const all = (await getCollection("posts")).filter((p) => p.id !== slug)
+
+// Score by shared tags (case-insensitive), break ties by recency.
+const lower = tags.map((t) => t.toLowerCase())
+const scored = all
+  .map((p) => ({
+    post: p,
+    shared: p.data.tags.filter((t) => lower.includes(t.toLowerCase())).length,
+  }))
+  .sort(
+    (a, b) =>
+      b.shared - a.shared || b.post.data.date.valueOf() - a.post.data.date.valueOf()
+  )
+
+// Take the best matches, then make sure the newest post on the site is in the
+// list regardless — older posts carry most of the search traffic and should
+// always offer a path to current work.
+const picked = scored.filter((s) => s.shared > 0).slice(0, 3)
+const newest = all.sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+)[0]
+
+const related = picked.map((s) => s.post)
+if (
+  newest &&
+  newest.data.date.valueOf() > date.valueOf() &&
+  !related.some((p) => p.id === newest.id)
+) {
+  if (related.length >= 3) related.pop()
+  related.unshift(newest)
+}
+while (related.length < 3) {
+  const next = scored.find((s) => !related.some((p) => p.id === s.post.id))
+  if (!next) break
+  related.push(next.post)
+}
+---
+
+{
+  related.length > 0 && (
+    <section class="related">
+      <h2>Keep reading</h2>
+      <ul>
+        {related.map((p) => (
+          <li>
+            <a href={`/blog/${p.id}/`}>{p.data.title}</a>
+            <span class="date">{p.data.date.toISOString().slice(0, 4)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<style lang="scss">
+  .related {
+    margin-top: 2.5rem;
+
+    h2 {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      margin-bottom: 0.9rem;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      margin: 0;
+    }
+
+    a {
+      color: var(--color-accent-strong);
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .date {
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+  }
+</style>

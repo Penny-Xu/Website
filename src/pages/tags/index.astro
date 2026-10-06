@@ -13,7 +13,10 @@ for (const post of posts) {
 const tags = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 ---
 
-<Layout title="Tags | Penny Xu">
+<Layout
+  title="Tags | Penny Xu"
+  description="Browse Penny Xu's technical writing by topic — CUDA, GPUs, LLM inference, deep learning, and computer vision."
+>
   <h1>Tags</h1>
   <ul class="tag-list">
     {

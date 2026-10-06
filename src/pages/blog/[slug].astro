@@ -1,7 +1,9 @@
 ---
 import { getCollection, render } from "astro:content"
 import Layout from "../../layouts/Layout.astro"
-import Comments from "../../components/Comments.astro"
+import RelatedPosts from "../../components/RelatedPosts.astro"
+import Feedback from "../../components/Feedback.astro"
+import { excerpt } from "../../utils/excerpt"
 import { kebabCase } from "../../utils/slugify"
 import "katex/dist/katex.min.css"
 
@@ -15,9 +17,30 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props
 const { Content } = await render(post)
+const description = post.data.description ?? excerpt(post.body)
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description,
+  datePublished: post.data.date.toISOString(),
+  author: { "@type": "Person", name: "Penny Xu", url: "https://penny-xu.github.io" },
+  keywords: post.data.tags.join(", "),
+  mainEntityOfPage: new URL(`/blog/${post.id}/`, Astro.site).href,
+}
 ---
 
-<Layout title={`${post.data.title} | Penny Xu`}>
+<Layout
+  title={`${post.data.title} | Penny Xu`}
+  description={description}
+  type="article"
+>
+  <script
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(schema)}
+  />
   <h1>{post.data.title}</h1>
   <p class="date">{post.data.date.toISOString().slice(0, 10)}</p>
   <nav>
@@ -35,8 +58,8 @@ const { Content } = await render(post)
   </nav>
   <hr />
   <Content />
-  <hr />
-  <Comments />
+  <Feedback />
+  <RelatedPosts slug={post.id} tags={post.data.tags} date={post.data.date} />
 </Layout>
 
 <style lang="scss">
