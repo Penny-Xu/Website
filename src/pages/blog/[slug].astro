@@ -2,7 +2,6 @@
 import { getCollection, render } from "astro:content"
 import Layout from "../../layouts/Layout.astro"
 import RelatedPosts from "../../components/RelatedPosts.astro"
-import Feedback from "../../components/Feedback.astro"
 import { excerpt } from "../../utils/excerpt"
 import { kebabCase } from "../../utils/slugify"
 import "katex/dist/katex.min.css"
@@ -58,7 +57,6 @@ const schema = {
   </nav>
   <hr />
   <Content />
-  <Feedback />
   <RelatedPosts slug={post.id} tags={post.data.tags} date={post.data.date} />
 </Layout>
 

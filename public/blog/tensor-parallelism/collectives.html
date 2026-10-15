@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collective operations, step by step</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #d4d4d4;
+    --bg: #fdfdfc;
+    --panel: #f4f4f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 840px; margin: 0 auto; padding: 16px 12px 24px; }
+  svg { width: 100%; height: auto; display: block; }
+  text { font-family: "SF Mono", Menlo, Consolas, monospace; }
+  .hidden { opacity: 0; }
+  g { transition: opacity .35s ease; }
+  .caption {
+    min-height: 92px;
+    margin: 14px 2px 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .caption b { font-weight: 600; }
+  .caption code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    background: var(--panel);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  .controls {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  button {
+    font: inherit; font-size: 13px;
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    background: #fff; color: var(--ink);
+    border-radius: 3px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: var(--panel); }
+  button:disabled { opacity: .4; cursor: default; }
+  .count { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; color: var(--muted); }
+  .dots { display: flex; gap: 5px; margin-left: auto; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line); cursor: pointer; }
+  .dot.on { background: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<svg viewBox="0 0 820 450" role="img" aria-label="Collective communication operations animation">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#8a8a8a" stroke-width="1.6"/>
+    </marker>
+    <marker id="arrowdark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,1 L9,5 L0,9" fill="none" stroke="#1a1a1a" stroke-width="1.6"/>
+    </marker>
+  </defs>
+
+  <g id="g-start" class="hidden">
+    <text x="42" y="30" font-size="10.5" fill="#6b6b6b">START — every GPU holds a full tensor, split into 4 chunks</text>
+    <text x="42" y="44" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="50" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="57" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="68.0" y="76" text-anchor="middle" font-size="11" fill="#2f6ea8">a0</text>
+    <rect x="89" y="57" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="108.0" y="76" text-anchor="middle" font-size="11" fill="#2f6ea8">a1</text>
+    <rect x="129" y="57" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="148.0" y="76" text-anchor="middle" font-size="11" fill="#2f6ea8">a2</text>
+    <rect x="169" y="57" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="188.0" y="76" text-anchor="middle" font-size="11" fill="#2f6ea8">a3</text>
+    <text x="230" y="44" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="50" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="57" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="256.0" y="76" text-anchor="middle" font-size="11" fill="#c2742a">b0</text>
+    <rect x="277" y="57" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="296.0" y="76" text-anchor="middle" font-size="11" fill="#c2742a">b1</text>
+    <rect x="317" y="57" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="336.0" y="76" text-anchor="middle" font-size="11" fill="#c2742a">b2</text>
+    <rect x="357" y="57" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="376.0" y="76" text-anchor="middle" font-size="11" fill="#c2742a">b3</text>
+    <text x="418" y="44" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="50" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="57" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="444.0" y="76" text-anchor="middle" font-size="11" fill="#3d7a4e">c0</text>
+    <rect x="465" y="57" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="484.0" y="76" text-anchor="middle" font-size="11" fill="#3d7a4e">c1</text>
+    <rect x="505" y="57" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="524.0" y="76" text-anchor="middle" font-size="11" fill="#3d7a4e">c2</text>
+    <rect x="545" y="57" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="564.0" y="76" text-anchor="middle" font-size="11" fill="#3d7a4e">c3</text>
+    <text x="606" y="44" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="50" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="57" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="632.0" y="76" text-anchor="middle" font-size="11" fill="#7d4f8a">d0</text>
+    <rect x="653" y="57" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="672.0" y="76" text-anchor="middle" font-size="11" fill="#7d4f8a">d1</text>
+    <rect x="693" y="57" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="712.0" y="76" text-anchor="middle" font-size="11" fill="#7d4f8a">d2</text>
+    <rect x="733" y="57" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="752.0" y="76" text-anchor="middle" font-size="11" fill="#7d4f8a">d3</text>
+  </g>
+
+  <g id="g-start-ag" class="hidden">
+    <text x="42" y="30" font-size="10.5" fill="#6b6b6b">START — each GPU holds one different slice, all correct</text>
+    <text x="42" y="44" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="50" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="57" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="68.0" y="76" text-anchor="middle" font-size="11" fill="#2f6ea8">p0</text>
+    <rect x="89" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="129" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="169" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="230" y="44" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="50" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="277" y="57" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="296.0" y="76" text-anchor="middle" font-size="11" fill="#c2742a">p1</text>
+    <rect x="317" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="357" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="418" y="44" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="50" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="465" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="505" y="57" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="524.0" y="76" text-anchor="middle" font-size="11" fill="#3d7a4e">p2</text>
+    <rect x="545" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="606" y="44" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="50" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="653" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="693" y="57" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="733" y="57" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="752.0" y="76" text-anchor="middle" font-size="11" fill="#7d4f8a">p3</text>
+  </g>
+
+  <g id="g-res-reduce" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">AFTER  reduce  →  one GPU has the sum</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="148.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="188.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+  </g>
+
+  <g id="g-res-allreduce" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">AFTER  all-reduce  →  every GPU has the sum</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="148.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="188.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="256.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="336.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="376.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="444.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="484.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="564.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="632.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="672.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="712.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+  </g>
+
+  <g id="g-res-rs" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">AFTER  reduce-scatter  →  each GPU has one slice of the sum</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+  </g>
+
+  <g id="g-res-ag" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">AFTER  all-gather  →  every GPU has all slices, concatenated</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p0</text>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p1</text>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="148.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p2</text>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="188.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p3</text>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="256.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p0</text>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p1</text>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="336.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p2</text>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="376.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p3</text>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="444.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p0</text>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="484.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p1</text>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p2</text>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="564.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p3</text>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="632.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p0</text>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="672.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p1</text>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="712.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p2</text>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">p3</text>
+  </g>
+
+  <g id="g-arrow-reduce" class="hidden">
+    <path d="M128.0,96 L128.0,240" fill="none" stroke="#2f6ea8" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M316.0,96 L128.0,240" fill="none" stroke="#c2742a" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M504.0,96 L128.0,240" fill="none" stroke="#3d7a4e" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M692.0,96 L128.0,240" fill="none" stroke="#7d4f8a" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <text x="420" y="222" font-size="10.5" fill="#6b6b6b">all four contribute · only GPU 0 keeps the result</text>
+  </g>
+
+  <g id="g-arrow-down" class="hidden">
+    <path d="M128.0,96 L128.0,240" fill="none" stroke="#2f6ea8" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M316.0,96 L316.0,240" fill="none" stroke="#c2742a" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M504.0,96 L504.0,240" fill="none" stroke="#3d7a4e" stroke-width="1.3" marker-end="url(#arrow)"/>
+    <path d="M692.0,96 L692.0,240" fill="none" stroke="#7d4f8a" stroke-width="1.3" marker-end="url(#arrow)"/>
+  </g>
+
+  <g id="g-id-rs" class="hidden">
+    <text x="42" y="146" font-size="10.5" fill="#6b6b6b">reduce-scatter  →  the whole sum exists once, spread across the GPUs</text>
+    <text x="42" y="160" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="166" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="173" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="192" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="129" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="169" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="230" y="160" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="166" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="277" y="173" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="192" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="317" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="357" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="418" y="160" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="166" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="465" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="505" y="173" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="192" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="545" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="606" y="160" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="166" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="653" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="693" y="173" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="733" y="173" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="192" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+  </g>
+
+  <g id="g-id-ag" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">then all-gather  →  which is exactly the all-reduce result</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="148.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="188.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="256.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="336.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="376.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="444.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="484.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="564.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="632.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="672.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="712.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+  </g>
+
+  <g id="g-id-note" class="hidden">
+    <rect x="42" y="362" width="736" height="40" rx="4" fill="#fff" stroke="#1a1a1a"/>
+    <text x="60" y="387" font-size="13">all-reduce   =   reduce-scatter   +   all-gather</text>
+  </g>
+
+  <g id="g-ring1" class="hidden">
+    <text x="42" y="146" font-size="10.5" fill="#6b6b6b">AFTER PASS 1 — each GPU added what its left neighbour sent</text>
+    <text x="42" y="160" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="166" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="173" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="68.0" y="192" text-anchor="middle" font-size="8.5" fill="#2f6ea8">a0</text>
+    <rect x="89" y="173" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="108.0" y="192" text-anchor="middle" font-size="8.5" fill="#2f6ea8">a1</text>
+    <rect x="129" y="173" width="38" height="28" rx="2" fill="#e8f1f8" stroke="#2f6ea8" stroke-width="1"/>
+    <text x="148.0" y="192" text-anchor="middle" font-size="8.5" fill="#2f6ea8">a2</text>
+    <rect x="169" y="173" width="38" height="28" rx="2" fill="#f4f4f2" stroke="#8a8a8a" stroke-width="1"/>
+    <text x="188.0" y="192" text-anchor="middle" font-size="8.5" fill="#8a8a8a">d3+a3</text>
+    <text x="230" y="160" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="166" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="173" width="38" height="28" rx="2" fill="#f4f4f2" stroke="#8a8a8a" stroke-width="1"/>
+    <text x="256.0" y="192" text-anchor="middle" font-size="8.5" fill="#8a8a8a">a0+b0</text>
+    <rect x="277" y="173" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="296.0" y="192" text-anchor="middle" font-size="8.5" fill="#c2742a">b1</text>
+    <rect x="317" y="173" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="336.0" y="192" text-anchor="middle" font-size="8.5" fill="#c2742a">b2</text>
+    <rect x="357" y="173" width="38" height="28" rx="2" fill="#faf0e3" stroke="#c2742a" stroke-width="1"/>
+    <text x="376.0" y="192" text-anchor="middle" font-size="8.5" fill="#c2742a">b3</text>
+    <text x="418" y="160" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="166" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="173" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="444.0" y="192" text-anchor="middle" font-size="8.5" fill="#3d7a4e">c0</text>
+    <rect x="465" y="173" width="38" height="28" rx="2" fill="#f4f4f2" stroke="#8a8a8a" stroke-width="1"/>
+    <text x="484.0" y="192" text-anchor="middle" font-size="8.5" fill="#8a8a8a">b1+c1</text>
+    <rect x="505" y="173" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="524.0" y="192" text-anchor="middle" font-size="8.5" fill="#3d7a4e">c2</text>
+    <rect x="545" y="173" width="38" height="28" rx="2" fill="#e9f3eb" stroke="#3d7a4e" stroke-width="1"/>
+    <text x="564.0" y="192" text-anchor="middle" font-size="8.5" fill="#3d7a4e">c3</text>
+    <text x="606" y="160" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="166" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="173" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="632.0" y="192" text-anchor="middle" font-size="8.5" fill="#7d4f8a">d0</text>
+    <rect x="653" y="173" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="672.0" y="192" text-anchor="middle" font-size="8.5" fill="#7d4f8a">d1</text>
+    <rect x="693" y="173" width="38" height="28" rx="2" fill="#f4f4f2" stroke="#8a8a8a" stroke-width="1"/>
+    <text x="712.0" y="192" text-anchor="middle" font-size="8.5" fill="#8a8a8a">c2+d2</text>
+    <rect x="733" y="173" width="38" height="28" rx="2" fill="#f2ebf5" stroke="#7d4f8a" stroke-width="1"/>
+    <text x="752.0" y="192" text-anchor="middle" font-size="8.5" fill="#7d4f8a">d3</text>
+  </g>
+
+  <g id="g-ring3" class="hidden">
+    <text x="42" y="252" font-size="10.5" fill="#6b6b6b">AFTER 3 PASSES — reduce-scatter done, each GPU owns one finished chunk</text>
+    <text x="42" y="266" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="272" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="89" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="129" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="169" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="230" y="266" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="272" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="277" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="317" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="336.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="357" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <text x="418" y="266" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="272" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="465" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="505" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="545" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="564.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="606" y="266" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="272" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="279" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="632.0" y="298" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="653" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="693" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+    <rect x="733" y="279" width="38" height="28" rx="2" fill="#fbfbfa" stroke="#d4d4d4" stroke-width=".9" stroke-dasharray="2 2"/>
+  </g>
+
+  <g id="g-ring4" class="hidden">
+    <text x="42" y="358" font-size="10.5" fill="#6b6b6b">AFTER 3 MORE PASSES — all-gather done, everyone has everything</text>
+    <text x="42" y="372" font-size="10" fill="#6b6b6b">GPU 0</text>
+    <rect x="42" y="378" width="172" height="42" rx="3" fill="none" stroke="#2f6ea8" stroke-width="1.2"/>
+    <rect x="49" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="68.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="89" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="108.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="129" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="148.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="169" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="188.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="230" y="372" font-size="10" fill="#6b6b6b">GPU 1</text>
+    <rect x="230" y="378" width="172" height="42" rx="3" fill="none" stroke="#c2742a" stroke-width="1.2"/>
+    <rect x="237" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="256.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="277" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="296.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="317" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="336.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="357" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="376.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="418" y="372" font-size="10" fill="#6b6b6b">GPU 2</text>
+    <rect x="418" y="378" width="172" height="42" rx="3" fill="none" stroke="#3d7a4e" stroke-width="1.2"/>
+    <rect x="425" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="444.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="465" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="484.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="505" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="524.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="545" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="564.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+    <text x="606" y="372" font-size="10" fill="#6b6b6b">GPU 3</text>
+    <rect x="606" y="378" width="172" height="42" rx="3" fill="none" stroke="#7d4f8a" stroke-width="1.2"/>
+    <rect x="613" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="632.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ0</text>
+    <rect x="653" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="672.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ1</text>
+    <rect x="693" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="712.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ2</text>
+    <rect x="733" y="385" width="38" height="28" rx="2" fill="#ebebe8" stroke="#1a1a1a" stroke-width="1"/>
+    <text x="752.0" y="404" text-anchor="middle" font-size="11" fill="#1a1a1a">Σ3</text>
+  </g>
+
+  <g id="g-ring-topo" class="hidden">
+    <path d="M128.0,96 Q222.0,124 316.0,96" fill="none" stroke="#1a1a1a" stroke-width="1.3" marker-end="url(#arrowdark)"/>
+    <path d="M316.0,96 Q410.0,124 504.0,96" fill="none" stroke="#1a1a1a" stroke-width="1.3" marker-end="url(#arrowdark)"/>
+    <path d="M504.0,96 Q598.0,124 692.0,96" fill="none" stroke="#1a1a1a" stroke-width="1.3" marker-end="url(#arrowdark)"/>
+    <path d="M692.0,98 Q410.0,152 128.0,98" fill="none" stroke="#1a1a1a" stroke-width="1.3" stroke-dasharray="3 2" marker-end="url(#arrowdark)"/>
+  </g>
+
+  <g id="g-bw" class="hidden">
+    <rect x="42" y="364" width="736" height="62" rx="4" fill="#fff" stroke="#1a1a1a"/>
+    <text x="60" y="386" font-size="12.5">per GPU:  2 × (N−1) chunks  ×  (D / N) bytes  =  2D · (N−1)/N</text>
+    <text x="60" y="406" font-size="11.5" fill="#6b6b6b">N = 2 → 1.00 D      N = 4 → 1.50 D      N = 8 → 1.75 D      N = 64 → 1.97 D      N → ∞ → 2D</text>
+    <text x="60" y="422" font-size="11.5" fill="#6b6b6b">bounded by 2D no matter how many GPUs you add</text>
+  </g>
+</svg>
+
+<div class="caption" id="cap"></div>
+
+<div class="controls">
+  <button id="prev">← Prev</button>
+  <button id="next">Next →</button>
+  <span class="count" id="count"></span>
+  <div class="dots" id="dots"></div>
+</div>
+</div>
+
+<script>
+const steps = [
+  {
+    show: ["g-start"],
+    cap: "Four GPUs, each holding a tensor of the <b>same shape</b>, split into four chunks for bookkeeping. GPU&nbsp;0's chunks are <code>a0…a3</code>, GPU&nbsp;1's are <code>b0…b3</code>, and so on. Every collective below starts from exactly this state. The only thing that differs is <b>who ends up with what</b>."
+  },
+  {
+    show: ["g-start","g-arrow-reduce","g-res-reduce"],
+    cap: "<b>reduce</b> — everyone contributes, <b>one</b> GPU gets the sum. <code>Σ0 = a0+b0+c0+d0</code>, and so on for each chunk. GPU&nbsp;0 ends up with the complete elementwise sum; the other three end up with nothing useful. It's the cheapest of the four, and almost never what tensor parallelism wants — the other GPUs still need the answer to continue."
+  },
+  {
+    show: ["g-start","g-arrow-down","g-res-allreduce"],
+    cap: "<b>all-reduce</b> — same sum, but <b>every</b> GPU gets it. This is the one tensor parallelism needs after each attention and MLP block: every GPU holds a full-shape <i>partial</i> sum, and all of them need the real value, because the next layer's column-parallel GEMM requires the full input replicated everywhere. <b>Shape in = shape out.</b> Only the values change."
+  },
+  {
+    show: ["g-start","g-arrow-down","g-res-rs"],
+    cap: "<b>reduce-scatter</b> — everyone contributes, but each GPU keeps only <b>one slice</b> of the sum. Every chunk of the answer now exists exactly once, and no single GPU has the whole thing. Each ends up holding <code>1/N</code> of the data, which makes this considerably cheaper than all-reduce."
+  },
+  {
+    show: ["g-start-ag","g-arrow-down","g-res-ag"],
+    cap: "<b>all-gather</b> — the only one with <b>no arithmetic at all</b>. Note the different starting state: each GPU begins with a <i>different</i> slice, every one already correct. Afterwards everyone holds all of them, laid end to end. <b>The output is N× larger than the input</b> — the opposite of all-reduce, where the shape never changes. That's the real distinction: same region with wrong values → add them; different regions with right values → stack them."
+  },
+  {
+    show: ["g-start","g-id-rs","g-id-ag","g-id-note"],
+    cap: "Now put two of them together. Start with full tensors, <b>reduce-scatter</b> so the sum exists once and is spread out, then <b>all-gather</b> so everyone collects all the pieces. The result is every GPU holding the complete sum — which is the definition of all-reduce. It's also how real implementations actually do it."
+  },
+  {
+    show: ["g-start","g-ring-topo","g-ring1"],
+    cap: "The <b>ring</b>. Arrange the GPUs in a circle; each one sends <b>only to its right neighbour</b>, ever. On the first pass, GPU&nbsp;0 sends chunk&nbsp;0 to GPU&nbsp;1, which adds it to its own chunk&nbsp;0; GPU&nbsp;1 sends chunk&nbsp;1 to GPU&nbsp;2, and so on around the ring. Four transfers happen <b>simultaneously</b>, each over a separate link."
+  },
+  {
+    show: ["g-start","g-ring-topo","g-ring1","g-ring3"],
+    cap: "After <b>N−1 = 3</b> passes, every chunk has visited every GPU exactly once and been accumulated along the way. Each GPU now owns exactly one <b>fully summed</b> chunk — GPU&nbsp;3 has <code>Σ0</code>, GPU&nbsp;0 has <code>Σ1</code>, and so on. That is reduce-scatter, completed with nothing but neighbour-to-neighbour transfers."
+  },
+  {
+    show: ["g-start","g-ring-topo","g-ring3","g-ring4"],
+    cap: "Then the <b>all-gather</b> phase: three more laps, circulating those finished chunks around the same ring. <b>No arithmetic this time</b> — pure copying, each GPU passing along what it just received. After 3 more passes everyone holds all four summed chunks. The all-reduce is complete in <b>2(N−1) = 6</b> steps."
+  },
+  {
+    show: ["g-ring-topo","g-start","g-bw"],
+    cap: "And here's the payoff. Each GPU sends <code>N−1</code> chunks in each phase, and each chunk is <code>1/N</code> of the tensor — so every GPU moves <code>2D·(N−1)/N</code> bytes total, which <b>approaches 2D and never exceeds it</b>. Going from 8 GPUs to 64 barely changes what any GPU sends. <b>Ring all-reduce's bandwidth cost does not grow with GPU count.</b> Which is why, when tensor parallelism gets expensive during decode, the culprit isn't bandwidth — it's the fixed per-collective latency you pay 56 times a step, and that one doesn't amortize."
+  }
+];
+
+const allGroups = ["g-start","g-start-ag","g-res-reduce","g-res-allreduce","g-res-rs","g-res-ag","g-arrow-reduce","g-arrow-down","g-id-rs","g-id-ag","g-id-note","g-ring1","g-ring3","g-ring4","g-ring-topo","g-bw"];
+let i = 0;
+
+const capEl = document.getElementById("cap");
+const countEl = document.getElementById("count");
+const prevEl = document.getElementById("prev");
+const nextEl = document.getElementById("next");
+const dotsEl = document.getElementById("dots");
+
+steps.forEach((_, n) => {
+  const d = document.createElement("div");
+  d.className = "dot";
+  d.onclick = () => { i = n; render(); };
+  dotsEl.appendChild(d);
+});
+
+function render() {
+  const s = steps[i];
+  allGroups.forEach(id => {
+    document.getElementById(id).classList.toggle("hidden", !s.show.includes(id));
+  });
+  capEl.innerHTML = s.cap;
+  countEl.textContent = (i + 1) + " / " + steps.length;
+  prevEl.disabled = i === 0;
+  nextEl.disabled = i === steps.length - 1;
+  [...dotsEl.children].forEach((d, n) => d.classList.toggle("on", n === i));
+}
+
+prevEl.onclick = () => { if (i > 0) { i--; render(); } };
+nextEl.onclick = () => { if (i < steps.length - 1) { i++; render(); } };
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") nextEl.click();
+  if (e.key === "ArrowLeft") prevEl.click();
+});
+
+render();
+</script>
+</body>
+</html>
